@@ -32,6 +32,9 @@ function defineEnvironment {
 
     # AWS Route53 Hosted Zone to Transfer
     $GLOBAL:route53HostedZone = "/hostedzone/[]" # [Hosted Zone Id]
+	
+	# Windows Azure Target Domain
+	$userDefAzureTargetDomain = "" # Target Azure DNS Domain
 
     # -------------------------------------------------------------------------------#
     # Configure the environment based on provided info
@@ -66,7 +69,7 @@ function setupEnvironment {
 
     # Azure Resource Group, Record Tag (to easily identify imported records), and DNS Domain
     Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name resourceGroup -Value ($userDefResourceGroup)
-    Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name azureDNSZone -Value (Get-AzureRmDnsZone -Name beta.cadlearning.com –ResourceGroupName $azureConfig.resourceGroup)
+    Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name azureDNSZone -Value (Get-AzureRmDnsZone -Name ($userDefAzureTargetDomain) –ResourceGroupName $azureConfig.resourceGroup)
 
     Write-Host -ForegroundColor White "Setting up AWS CLI Environment"
 
