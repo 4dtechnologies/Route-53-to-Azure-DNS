@@ -17,6 +17,7 @@ This script assumes the following:
 ## Let's Get Started
 In the User Defined Variables section of this script, set your Microsoft Azure and Amazon Web Services credentials. If you're unsure on what your AWS Hosted Zone Id is, try issuing this command in the AWS CLI: "aws route53 list-hosted-zones". This will produce a list of all the DNS zones accessible with your AWS IAM account.
 
+
 Execute the script. Shortly after execution, it will request Azure login credentials. Be sure to use an account with appropriate permissions for the target subscription Id and resource group.
 
 Once logged in, the script will begin the migration. The basic steps involved are:
