@@ -34,9 +34,11 @@ function defineEnvironment {
     $GLOBAL:route53HostedZone = "/hostedzone/[]" # [Hosted Zone Id]
 	
 	# Windows Azure Target Domain
-	$userDefAzureTargetDomain = "" # Target Azure DNS Domain
+	$GLOBAL:userDefAzureDNSZone = "" # Target Azure DNS Zone Name
+    $GLOBAL:userDefAzureTargetDomain = "" # Target Azure DNS Domain
 
     # -------------------------------------------------------------------------------#
+    
     # Configure the environment based on provided info
     setupEnvironment (
         $userDefAzureSubscriptionId,
@@ -69,7 +71,7 @@ function setupEnvironment {
 
     # Azure Resource Group, Record Tag (to easily identify imported records), and DNS Domain
     Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name resourceGroup -Value ($userDefResourceGroup)
-    Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name azureDNSZone -Value (Get-AzureRmDnsZone -Name ($userDefAzureTargetDomain) –ResourceGroupName $azureConfig.resourceGroup)
+    Add-Member -InputObject $azureConfig -MemberType NoteProperty -Name azureDNSZone -Value (Get-AzureRmDnsZone -Name ($userDefAzureDNSZone) –ResourceGroupName $azureConfig.resourceGroup)
 
     Write-Host -ForegroundColor White "Setting up AWS CLI Environment"
 
@@ -125,7 +127,7 @@ function parseRoute53 {
         foreach ($existingRecord in $ResourceRecords.ResourceRecords) {
     
 			# Add DNS Record Properties
-            Add-Member -InputObject $existingRecord -MemberType NoteProperty -Name Name -Value ($ResourceRecords.Name)
+            Add-Member -InputObject $existingRecord -MemberType NoteProperty -Name Name -Value ($ResourceRecords.Name.TrimEnd('.'))
             Add-Member -InputObject $existingRecord -MemberType NoteProperty -Name Type -Value ($ResourceRecords.Type)
             Add-Member -InputObject $existingRecord -MemberType NoteProperty -Name TTL -Value ($ResourceRecords.TTL)
             Add-Member -InputObject $existingRecord -MemberType NoteProperty -Name Preference -Value ('')
@@ -161,6 +163,18 @@ function parseRoute53 {
 
             }
 
+            # Clean the root domain out of the name property
+
+            if ($existingRecord.Name -eq $userDefAzureTargetDomain) {
+
+                $existingRecord.Name = '@'
+
+            } else {
+
+                $existingRecord.Name = $existingRecord.Name.Replace($userDefAzureTargetDomain,'').TrimEnd('.')
+
+            }
+
             $route53Records.Add($existingRecord)
 
         }
@@ -183,9 +197,9 @@ function azureImportRecords {
         $recordPrecheck = ''
 
         # Check if a record set by this name already exists
-        $recordPrecheck = Get-AzureRmDnsRecordSet -Name $ResourceRecords.Name.TrimEnd('.') -ResourceGroupName $azureConfig.resourceGroup -ZoneName $azureConfig.azureDNSZone.Name -RecordType $ResourceRecords.Type -ErrorAction SilentlyContinue
+        $recordPrecheck = Get-AzureRmDnsRecordSet -Name $ResourceRecords.Name -ResourceGroupName $azureConfig.resourceGroup -ZoneName $azureConfig.azureDNSZone.Name -RecordType $ResourceRecords.Type -ErrorAction SilentlyContinue
 
-        if ($recordPrecheck.Name -ne $ResourceRecords.Name.TrimEnd('.') -and $recordPrecheck.RecordType -ne $ResourceRecords.Type -and $recordPrecheck.Value -ne $ResourceRecords.Value ) {
+        if ($recordPrecheck.Name -ne $ResourceRecords.Name -and $recordPrecheck.RecordType -ne $ResourceRecords.Type -and $recordPrecheck.Value -ne $ResourceRecords.Value ) {
            
             # Configure the new record set and adjust the type as necessary before commiting the record
             if ($ResourceRecords.Type -eq 'A') {
@@ -221,7 +235,7 @@ function azureImportRecords {
                 # Change the record type to be SRV to comply with Azure DNS
                 $ResourceRecords.Type = "SRV"
                 newRecord
-                Add-AzureRmDnsRecordConfig (-RecordSet $azureDNSRecordSet -Priority $ResourceRecords.Priority -Port -Weight $ResourceRecords.Weight $ResourceRecords.Port -Target $ResourceRecords.Value)
+                Add-AzureRmDnsRecordConfig -RecordSet $azureDNSRecordSet -Priority $ResourceRecords.Priority -Port -Weight $ResourceRecords.Weight $ResourceRecords.Port -Target $ResourceRecords.Value
                 commitRecord
 
             } elseif ($ResourceRecords.Type -eq 'TXT' -or $ResourceRecords.Type -eq 'SPF') {
@@ -267,10 +281,10 @@ function newRecord {
     } else {
     
 	# Inform the user of the record currently being created
-    Write-Host -ForegroundColor White "Creating new record set:"($ResourceRecords.Name.TrimEnd('.'))
+    Write-Host -ForegroundColor White "Creating new record set:"($ResourceRecords.Name)
     
 	# Create a new record
-	$GLOBAL:azureDNSRecordSet = New-AzureRmDnsRecordSet -Name $ResourceRecords.Name.TrimEnd('.') -RecordType $ResourceRecords.Type -Ttl $ResourceRecords.TTL –Zone $azureConfig.azureDNSZone
+	$GLOBAL:azureDNSRecordSet = New-AzureRmDnsRecordSet -Name $ResourceRecords.Name -RecordType $ResourceRecords.Type -Ttl $ResourceRecords.TTL –Zone $azureConfig.azureDNSZone
     
 	# Increment the records written counter
 	$GLOBAL:recordsWritten++
@@ -300,7 +314,7 @@ function cleanup(){
     # -------------------------------------------
 
     Write-Host -ForegroundColor White "Cleanup: Removing Variables"
-    Remove-Variable -Scope Global -Name route53Records, azureConfig, AWSconfig
+    Remove-Variable -Scope Global -Name route53Records, azureConfig, AWSconfig, userDefAzureDNSZone, userDefAzureTargetDomain
 
     # If we wrote any records, clean up the record set variable
     if ($recordsWritten -ne 0) {
