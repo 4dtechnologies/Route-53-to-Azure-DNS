@@ -15,7 +15,7 @@ This script assumes the following:
  - You've created a target DNS Zone in Microsoft Azure. A reference on how to manage Azure DNS zones can be found at: https://azure.microsoft.com/en-us/documentation/articles/dns-operations-dnszones/
  
 ## Let's Get Started
-Set your Microsoft Azure and Amazon Web Services credentials in the User Defined Variables section of this script. If you're unsure on what your AWS Hosted Zone Id is, try issuing this command in the AWS CLI: "aws route53 list-hosted-zones". This will produce a list of all the DNS zones accessible with your AWS IAM account.
+In the User Defined Variables section of this script, set your Microsoft Azure and Amazon Web Services credentials. If you're unsure on what your AWS Hosted Zone Id is, try issuing this command in the AWS CLI: "aws route53 list-hosted-zones". This will produce a list of all the DNS zones accessible with your AWS IAM account.
 
 Execute the script. Shortly after execution, it will request Azure login credentials. Be sure to use an account with appropriate permissions for the target subscription Id and resource group.
 
