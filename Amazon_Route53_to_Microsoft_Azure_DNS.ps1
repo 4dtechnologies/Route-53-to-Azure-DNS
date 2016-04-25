@@ -138,8 +138,8 @@ function parseRoute53 {
             # Check for MX record and set required properties
             if ($ResourceRecords.Type -eq 'MX') {                
 
-                $existingRecord.Value = $existingRecord.Value.Split(' ')[1]
                 $existingRecord.Preference = [uint16]$existingRecord.Value.Split(' ')[0]
+				$existingRecord.Value = $existingRecord.Value.Split(' ')[1]
 
             # Check for SRV record and set required properties
             } elseif ($ResourceRecords.Type -eq 'SRV') {                
