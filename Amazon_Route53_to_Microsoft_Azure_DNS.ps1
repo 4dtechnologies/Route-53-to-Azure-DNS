@@ -139,14 +139,14 @@ function parseRoute53 {
             if ($ResourceRecords.Type -eq 'MX') {                
 
                 $existingRecord.Value = $existingRecord.Value.Split(' ')[1]
-                $existingRecord.Preference = $existingRecord.Value.Split(' ')[0]
+                $existingRecord.Preference = [uint16]$existingRecord.Value.Split(' ')[0]
 
             # Check for SRV record and set required properties
             } elseif ($ResourceRecords.Type -eq 'SRV') {                
 
                 $existingRecord.Priority = $existingRecord.Value.Split(' ')[0]
                 $existingRecord.Weight = $existingRecord.Value.Split(' ')[1]
-                $existingRecord.Port = $existingRecord.Value.Split(' ')[2]
+                $existingRecord.Port = [uint16]$existingRecord.Value.Split(' ')[2]
                 $existingRecord.Value = $existingRecord.Value.Split(' ')[3]
 
             # Check for SPF record and set required properties
@@ -235,7 +235,7 @@ function azureImportRecords {
                 # Change the record type to be SRV to comply with Azure DNS
                 $ResourceRecords.Type = "SRV"
                 newRecord
-                Add-AzureRmDnsRecordConfig -RecordSet $azureDNSRecordSet -Priority $ResourceRecords.Priority -Port -Weight $ResourceRecords.Weight $ResourceRecords.Port -Target $ResourceRecords.Value
+                Add-AzureRmDnsRecordConfig -RecordSet $azureDNSRecordSet -Priority $ResourceRecords.Priority -Port $ResourceRecords.Port -Weight $ResourceRecords.Weight  -Target $ResourceRecords.Value
                 commitRecord
 
             } elseif ($ResourceRecords.Type -eq 'TXT' -or $ResourceRecords.Type -eq 'SPF') {
